@@ -21,7 +21,7 @@ That is **LectureBuddy**: a clean, minimal, distraction-free web app that runs c
 ## Demo
 
 - **GitHub Repository**: [https://github.com/huzaifa-devpk/LectureBuddy.git](https://github.com/huzaifa-devpk/LectureBuddy.git)
-- **Live Demo / Local Preview**: Simply open `LectureBuddy/index.html` in any web browser.
+- **Live Demo / Local Preview**: [Simply open `LectureBuddy/index.html` in any web browser.](https://lecturebuddy.netlify.app)
 
 ### Key Interactive Features Walkthrough
 
@@ -41,8 +41,6 @@ That is **LectureBuddy**: a clean, minimal, distraction-free web app that runs c
 ---
 
 ## Code
-
-{% embed https://github.com/huzaifa-devpk/LectureBuddy %}
 
 Repository URL: **[https://github.com/huzaifa-devpk/LectureBuddy.git](https://github.com/huzaifa-devpk/LectureBuddy.git)**
 
