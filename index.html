@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LectureBuddy - Simple AI Lecture Explainer for Students</title>
+  <meta name="description" content="Upload PDFs, Word documents, or photos of handwritten notes. Get beginner-friendly explanations, key takeaways, and flashcards powered by open-source AI.">
+  
+  <!-- Modern Clean Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Client-Side Document & OCR Libraries (Zero Backend Required) -->
+  <!-- 1. PDF.js for client-side PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- 2. Mammoth.js for client-side Word (.docx) document extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- 3. Tesseract.js for client-side handwritten note OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand" id="brandLogo">
+        <div class="brand-icon">🎓</div>
+        <div>
+          <div class="brand-title">Lecture<span>Buddy</span></div>
+        </div>
+        <span class="brand-tag">Student Edition</span>
+      </a>
+
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="btn btn-secondary btn-icon" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          🌙
+        </button>
+        <button id="apiSettingsBtn" class="btn btn-secondary btn-sm" title="Configure AI API Key">
+          <span>⚡</span>
+          <span>AI Model / Key</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container" style="flex:1; padding-bottom:3rem;">
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-badge">
+        <span>✨</span>
+        <span>Frontend-Only • 100% Private &amp; Client-Side</span>
+      </div>
+      <h1 class="hero-title">Turn Dense Lectures Into Crystal-Clear Notes</h1>
+      <p class="hero-desc">
+        Upload a PDF, Word document, or photo of your handwritten lecture notes.
+        LectureBuddy breaks down the intuition, key points, and core terms in simple beginner language.
+      </p>
+
+      <!-- Instant 1-Click Sample Lectures -->
+      <div class="sample-bar">
+        <span class="sample-label">Try Sample Notes:</span>
+        <div class="sample-pills">
+          <button class="sample-pill" id="sampleBioBtn" type="button">
+            <span>🌿</span> Biology: Photosynthesis &amp; ATP
+          </button>
+          <button class="sample-pill" id="sampleCsBtn" type="button">
+            <span>💻</span> CS: Big-O &amp; Data Structures
+          </button>
+          <button class="sample-pill" id="sampleHistBtn" type="button">
+            <span>📜</span> History: Industrial Revolution
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload Card -->
+    <section class="upload-card">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload lecture file">
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md,.png,.jpg,.jpeg,.webp" style="display:none;">
+        <div class="dropzone-icon">📥</div>
+        <h2 class="dropzone-title">Drop your lecture file here, or click to browse</h2>
+        <p class="dropzone-desc">Upload a PDF slide deck, Word document (.docx), or photo of your handwritten notes</p>
+        <div class="file-types-badge">
+          <span class="type-pill">📕 PDF</span>
+          <span class="type-pill">📘 Word (.docx)</span>
+          <span class="type-pill">✍️ Handwritten Photo</span>
+          <span class="type-pill">📄 Plain Text</span>
+        </div>
+      </div>
+
+      <!-- File Preview Banner -->
+      <div class="file-preview" id="filePreview">
+        <div class="file-info">
+          <div class="file-icon" id="fileIcon">📄</div>
+          <div>
+            <div class="file-name" id="fileName">document.pdf</div>
+            <div class="file-detail" id="fileDetail">Ready to analyze</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="removeFileBtn">✕ Remove</button>
+      </div>
+
+      <!-- OCR Progress Bar for Handwritten Photos -->
+      <div class="ocr-progress-box" id="ocrProgressBox">
+        <div class="ocr-status">
+          <span id="ocrStatusMsg">Extracting handwritten text...</span>
+          <span id="ocrPct" style="font-family:var(--font-mono);color:var(--primary);">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="ocrProgressFill"></div>
+        </div>
+      </div>
+
+      <!-- Controls & Explain Button -->
+      <div class="action-controls">
+        <div class="select-group">
+          <label for="modeSelect" class="select-label">Explanation Style:</label>
+          <select id="modeSelect" class="select-input">
+            <option value="eli5">Explain Like I'm 5 (Super Beginner)</option>
+            <option value="college">College 101 (Intuitive &amp; Structured)</option>
+            <option value="cram">Exam Cram (Key Takeaways)</option>
+          </select>
+        </div>
+
+        <button id="explainBtn" class="btn btn-primary" type="button">
+          <span>✨</span>
+          <span>Explain Lecture</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- RESULTS WORKSPACE -->
+    <section class="results-workspace" id="resultsWorkspace">
+      
+      <!-- Results Header Card -->
+      <div class="results-header-card">
+        <div class="meta-badges">
+          <span class="badge-topic" id="topicBadge">Biology 101</span>
+          <span class="badge-model" id="modelBadge">Built-in Smart Engine</span>
+        </div>
+        <h2 class="results-title" id="lectureTitle">Lecture Notes Summary</h2>
+
+        <div class="results-toolbar">
+          <!-- Text-to-Speech Player -->
+          <div class="audio-bar" id="audioBar">
+            <button class="audio-btn" id="audioToggleBtn" title="Listen to summary">▶</button>
+            <span class="audio-label" id="audioStatusText">Listen</span>
+            <button class="btn btn-ghost btn-sm" id="audioStopBtn" style="padding:0.1rem 0.35rem;font-size:0.75rem;">Stop</button>
+          </div>
+
+          <!-- Actions -->
+          <div class="toolbar-buttons">
+            <button class="btn btn-secondary btn-sm" id="copyBtn" title="Copy notes to clipboard">
+              <span>📋</span> Copy
+            </button>
+            <button class="btn btn-secondary btn-sm" id="exportBtn" title="Export as Markdown study guide">
+              <span>📥</span> Export .md
+            </button>
+            <button class="btn btn-secondary btn-sm" id="printBtn" title="Print notes">
+              <span>🖨️</span> Print
+            </button>
+            <button class="btn btn-ghost btn-sm" id="newUploadBtn">
+              <span>🔄</span> New Upload
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <nav class="tabs-nav" id="tabsNav" role="tablist">
+        <button class="tab-btn active" data-tab="summary" role="tab">
+          <span>💡</span> Simple Summary
+        </button>
+        <button class="tab-btn" data-tab="points" role="tab">
+          <span>📌</span> Key Points <span class="tab-count" id="countPoints">0</span>
+        </button>
+        <button class="tab-btn" data-tab="terms" role="tab">
+          <span>📖</span> Important Terms <span class="tab-count" id="countTerms">0</span>
+        </button>
+        <button class="tab-btn" data-tab="quiz" role="tab">
+          <span>🎯</span> Practice Quiz <span class="tab-count" id="countQuiz">0</span>
+        </button>
+        <button class="tab-btn" data-tab="ask" role="tab">
+          <span>💬</span> Ask LectureBuddy
+        </button>
+        <button class="tab-btn" data-tab="notes" role="tab">
+          <span>📄</span> Extracted Notes
+        </button>
+      </nav>
+
+      <!-- TAB 1: SIMPLE SUMMARY -->
+      <div class="tab-panel active" id="tab-summary" role="tabpanel">
+        <div class="panel-card">
+          <!-- The Big Picture Callout -->
+          <div class="big-picture-card">
+            <div class="big-picture-label">
+              <span>🌟</span> The Big Picture
+            </div>
+            <div class="big-picture-body" id="bigPictureBody">
+              Analyzing core lecture concepts...
+            </div>
+          </div>
+
+          <!-- Simple Summary Paragraphs -->
+          <div class="summary-content" id="summaryContent"></div>
+
+          <!-- Why It Matters -->
+          <div class="why-matters-card">
+            <div class="why-matters-header">
+              <span>🎯</span> Why It Matters in Real Life
+            </div>
+            <div class="why-matters-text" id="whyMattersText"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: KEY POINTS -->
+      <div class="tab-panel" id="tab-points" role="tabpanel">
+        <div class="panel-card">
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:1.25rem;">Core Takeaways</h3>
+          <div class="points-list" id="pointsList"></div>
+        </div>
+      </div>
+
+      <!-- TAB 3: IMPORTANT TERMS & FLASHCARDS -->
+      <div class="tab-panel" id="tab-terms" role="tabpanel">
+        <div class="panel-card">
+          <div class="terms-toolbar">
+            <h3 style="font-size:1.15rem;font-weight:700;">Important Terms &amp; Definitions</h3>
+            <div class="view-toggle">
+              <button class="view-btn active" id="btnViewGrid">Grid</button>
+              <button class="view-btn" id="btnViewCards">Flashcards</button>
+            </div>
+          </div>
+
+          <!-- Terms Grid View -->
+          <div id="termsGridWrap">
+            <div class="terms-grid" id="termsGrid"></div>
+          </div>
+
+          <!-- 3D Flip Flashcards View -->
+          <div class="flashcards-wrapper" id="flashcardsWrap">
+            <div class="flip-card" id="flipCard" title="Click anywhere on card to flip">
+              <div class="flip-card-inner">
+                <div class="flip-front">
+                  <span class="term-pill" style="position:absolute;top:1.2rem;left:1.5rem;">TERM</span>
+                  <h3 id="cardTermName" style="font-size:1.5rem;font-weight:800;color:var(--text-main);">Term</h3>
+                  <div class="flip-hint"><span>🔄</span> Click to flip &amp; reveal definition</div>
+                </div>
+                <div class="flip-back">
+                  <span class="term-pill" style="position:absolute;top:1.2rem;left:1.5rem;background:var(--success-light);color:var(--success);">DEFINITION</span>
+                  <p id="cardTermDef" style="font-size:1.05rem;line-height:1.6;color:var(--text-main);margin-bottom:0.75rem;">Definition</p>
+                  <div id="cardTermAnalogy" style="font-size:0.85rem;font-style:italic;color:var(--text-muted);"></div>
+                  <div class="flip-hint"><span>🔄</span> Click to flip back</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-nav">
+              <button class="btn btn-secondary btn-sm" id="btnPrevCard">← Previous</button>
+              <span id="cardCounter" style="font-size:0.85rem;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);">1 of 5</span>
+              <button class="btn btn-secondary btn-sm" id="btnNextCard">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: PRACTICE QUIZ -->
+      <div class="tab-panel" id="tab-quiz" role="tabpanel">
+        <div class="panel-card">
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:0.35rem;">Comprehension Quiz</h3>
+          <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.5rem;">
+            Test your understanding with instant feedback. Click an option to see if you're right!
+          </p>
+          <div class="quiz-list" id="quizList"></div>
+        </div>
+      </div>
+
+      <!-- TAB 5: ASK LECTUREBUDDY (Q&A) -->
+      <div class="tab-panel" id="tab-ask" role="tabpanel">
+        <div class="panel-card">
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:0.35rem;">Ask Follow-Up Questions</h3>
+          <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.25rem;">
+            Ask LectureBuddy anything if you want another example, need clarification, or want to know how ideas relate.
+          </p>
+          
+          <div class="chat-box">
+            <div class="chat-msgs" id="chatMsgs"></div>
+            <div class="chat-input-row">
+              <input type="text" class="chat-txt" id="chatInput" placeholder="e.g. Can you explain this with an everyday analogy?">
+              <button class="btn btn-primary" id="chatSendBtn">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: RAW EXTRACTED NOTES -->
+      <div class="tab-panel" id="tab-notes" role="tabpanel">
+        <div class="panel-card">
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:0.35rem;">Extracted Lecture Text</h3>
+          <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1rem;">
+            Review or tweak the text extracted from your PDF, Word document, or handwritten note.
+          </p>
+          <textarea class="raw-textarea" id="rawTextarea" spellcheck="false" placeholder="Extracted notes will appear here..."></textarea>
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary btn-sm" id="reExplainBtn">
+              <span>🔄</span> Update &amp; Re-explain
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- AI API Configuration Modal -->
+  <div class="modal-mask" id="apiModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3 class="modal-title" id="modalTitle">
+          <span>⚙️</span>
+          <span>AI Model Configuration</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon" id="closeModalBtn">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="apiProvider">AI Engine Provider:</label>
+        <select id="apiProvider" class="select-input">
+          <option value="builtin">Built-in Smart NLP Engine (100% Free, Offline, No Key Needed)</option>
+          <option value="groq">Groq API (Free, Ultra-Fast Open Weights like Llama 3.3)</option>
+          <option value="huggingface">Hugging Face Inference (Free Open-Source Models)</option>
+          <option value="custom">Custom / OpenRouter / OpenAI-Compatible Endpoint</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="groupModel">
+        <label class="form-label" for="apiModel">Model Name:</label>
+        <select id="apiModel" class="select-input"></select>
+      </div>
+
+      <div class="form-group" id="groupEndpoint" style="display:none;">
+        <label class="form-label" for="apiEndpoint">Custom Endpoint URL:</label>
+        <input type="text" id="apiEndpoint" class="input-txt" placeholder="https://api.openai.com/v1/chat/completions">
+      </div>
+
+      <div class="form-group" id="groupKey" style="display:none;">
+        <label class="form-label" for="apiKey">API Key / Token:</label>
+        <input type="password" id="apiKey" class="input-txt" placeholder="Paste your API key here">
+        <span class="input-hint" id="keyHint">Stored securely only in your browser's localStorage.</span>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveApiBtn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Wrapper -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        <strong>LectureBuddy</strong> — Frontend-only study buddy.
+        Extracts PDFs, Word docs (.docx), and handwritten photos directly in your browser.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Main JavaScript Application -->
+  <script src="script.js"></script>
+</body>
+</html>
